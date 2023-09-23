@@ -44,28 +44,137 @@ export class FormulaEvaluator {
    */
 
   evaluate(formula: FormulaType) {
-
-
-    // set the this._result to the length of the formula
-
-    this._result = formula.length;
     this._errorMessage = "";
+    let formulaStatus = -1;
+    console.log("formula", formula);
 
-    switch (formula.length) {
+    // check cell references in the formula and convert them to values
+    for (let i = 0; i < formula.length; i++) {
+      const token = formula[i];
+      if (this.isCellReference(token)) {
+        const [value, error] = this.getCellValue(token);
+        if (error !== "") {
+          formulaStatus = 9;
+          break;
+        }
+        formula[i] = String(value);
+      }
+    }
+
+    // convert infix to postfix
+    const operatorStack: TokenType[] = [];
+    const outputQueue: TokenType[] = [];
+    const precedence: { [key: string]: number } = {
+      "+": 1,
+      "-": 1,
+      "*": 2,
+      "/": 2
+    };
+
+    for (const token of formula) {
+      if (this.isNumber(token)) {
+        outputQueue.push(token);
+      } else if (token === '(') {
+        operatorStack.push(token);
+      } else if (token === ')') {
+        if (operatorStack[operatorStack.length - 1] === '(' && outputQueue.length === 0) {
+          formulaStatus = 13;
+        }
+        while (operatorStack.length && operatorStack[operatorStack.length - 1] !== '(') {
+          outputQueue.push(operatorStack.pop()!);
+        }
+        if (operatorStack.length && operatorStack[operatorStack.length - 1] === '(') {
+          operatorStack.pop();
+        }
+      } else {
+        while (
+          operatorStack.length &&
+          precedence[token] <= precedence[operatorStack[operatorStack.length - 1]]
+        ) {
+          outputQueue.push(operatorStack.pop()!);
+        }
+        console.log("pushing operator", token);
+        operatorStack.push(token);
+      }
+    }
+
+    while (operatorStack.length) {
+      outputQueue.push(operatorStack.pop()!);
+    }
+
+    console.log("outputQueue", outputQueue);
+    //check if the formula is one number only
+    if (outputQueue.length === 1 && this.isNumber(outputQueue[0])) {
+      this._result = Number(outputQueue[0]);
+      return;
+    }
+
+    // evaluate the postfix expression
+    const valueStack: number[] = [];
+    for (const token of outputQueue) {
+      console.log("valueStack: ", valueStack);
+      let endEvaluate = false;
+      if (this.isNumber(token)) {
+        valueStack.push(Number(token));
+      } else {
+        const b = valueStack.pop();
+        const a = valueStack.pop();
+        if (a === undefined || b === undefined) {
+          if (b !== undefined) {
+            valueStack.push(b);
+          } 
+          formulaStatus = 10;
+          break;
+        }
+        switch (token) {
+          case '+':
+            valueStack.push(a + b);
+            break;
+          case '-':
+            valueStack.push(a - b);
+            break;
+          case '*':
+            valueStack.push(a * b);
+            break;
+          case '/':
+            if (b === 0) {
+              formulaStatus = 8;
+              endEvaluate = true;
+            } else {
+              valueStack.push(a / b);
+            }
+            break;
+          default:
+            formulaStatus = 12;
+            endEvaluate = true;
+        }
+      }
+      if (endEvaluate) {
+        break;
+      }
+    }
+
+    console.log("valueStack after evaluate: ", valueStack);
+    console.log("formulaStatus: ", formulaStatus);
+
+    switch (formulaStatus) {
       case 0:
         this._errorMessage = ErrorMessages.emptyFormula;
         break;
       case 7:
         this._errorMessage = ErrorMessages.partial;
+        this._result = valueStack[0];
         break;
       case 8:
         this._errorMessage = ErrorMessages.divideByZero;
+        this._result = Infinity;
         break;
       case 9:
         this._errorMessage = ErrorMessages.invalidCell;
         break;
       case 10:
         this._errorMessage = ErrorMessages.invalidFormula;
+        this._result = valueStack[0];
         break;
       case 11:
         this._errorMessage = ErrorMessages.invalidNumber;
@@ -77,7 +186,7 @@ export class FormulaEvaluator {
         this._errorMessage = ErrorMessages.missingParentheses;
         break;
       default:
-        this._errorMessage = "";
+        this._result = valueStack[0];
         break;
     }
   }
