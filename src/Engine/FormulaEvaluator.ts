@@ -44,19 +44,13 @@ export class FormulaEvaluator {
    */
 
   evaluate(formula: FormulaType) {
-    this._errorMessage = "";
-    let formulaStatus = -1;
-    console.log("formula", formula);
 
     // check cell references in the formula and convert them to values
     for (let i = 0; i < formula.length; i++) {
       const token = formula[i];
       if (this.isCellReference(token)) {
         const [value, error] = this.getCellValue(token);
-        if (error !== "") {
-          formulaStatus = 9;
-          break;
-        }
+        this._errorMessage = error;
         formula[i] = String(value);
       }
     }
@@ -78,7 +72,7 @@ export class FormulaEvaluator {
         operatorStack.push(token);
       } else if (token === ')') {
         if (operatorStack[operatorStack.length - 1] === '(' && outputQueue.length === 0) {
-          formulaStatus = 13;
+          this._errorMessage = ErrorMessages.missingParentheses;
         }
         while (operatorStack.length && operatorStack[operatorStack.length - 1] !== '(') {
           outputQueue.push(operatorStack.pop()!);
@@ -123,7 +117,8 @@ export class FormulaEvaluator {
           if (b !== undefined) {
             valueStack.push(b);
           } 
-          formulaStatus = 10;
+          this._errorMessage = ErrorMessages.invalidFormula;
+          this._result = valueStack[0];
           break;
         }
         switch (token) {
@@ -138,14 +133,15 @@ export class FormulaEvaluator {
             break;
           case '/':
             if (b === 0) {
-              formulaStatus = 8;
+              this._errorMessage = ErrorMessages.divideByZero;
+              this._result = Infinity;
               endEvaluate = true;
             } else {
               valueStack.push(a / b);
             }
             break;
           default:
-            formulaStatus = 12;
+            this._errorMessage = ErrorMessages.invalidOperator;
             endEvaluate = true;
         }
       }
@@ -154,41 +150,6 @@ export class FormulaEvaluator {
       }
     }
 
-    console.log("valueStack after evaluate: ", valueStack);
-    console.log("formulaStatus: ", formulaStatus);
-
-    switch (formulaStatus) {
-      case 0:
-        this._errorMessage = ErrorMessages.emptyFormula;
-        break;
-      case 7:
-        this._errorMessage = ErrorMessages.partial;
-        this._result = valueStack[0];
-        break;
-      case 8:
-        this._errorMessage = ErrorMessages.divideByZero;
-        this._result = Infinity;
-        break;
-      case 9:
-        this._errorMessage = ErrorMessages.invalidCell;
-        break;
-      case 10:
-        this._errorMessage = ErrorMessages.invalidFormula;
-        this._result = valueStack[0];
-        break;
-      case 11:
-        this._errorMessage = ErrorMessages.invalidNumber;
-        break;
-      case 12:
-        this._errorMessage = ErrorMessages.invalidOperator;
-        break;
-      case 13:
-        this._errorMessage = ErrorMessages.missingParentheses;
-        break;
-      default:
-        this._result = valueStack[0];
-        break;
-    }
   }
 
   public get error(): string {
