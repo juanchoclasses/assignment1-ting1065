@@ -44,14 +44,15 @@ export class FormulaEvaluator {
    */
 
   evaluate(formula: FormulaType) {
+    // check cell references in the formula and convert them to values and put them in a new array
+    const formulaInValue = [...formula];
 
-    // check cell references in the formula and convert them to values
     for (let i = 0; i < formula.length; i++) {
       const token = formula[i];
       if (this.isCellReference(token)) {
         const [value, error] = this.getCellValue(token);
         this._errorMessage = error;
-        formula[i] = String(value);
+        formulaInValue[i] = String(value);
       }
     }
 
@@ -65,8 +66,9 @@ export class FormulaEvaluator {
       "/": 2
     };
 
-    for (const token of formula) {
+    for (const token of formulaInValue) {
       if (this.isNumber(token)) {
+        console.log("pushing number", token);
         outputQueue.push(token);
       } else if (token === '(') {
         operatorStack.push(token);
@@ -87,7 +89,6 @@ export class FormulaEvaluator {
         ) {
           outputQueue.push(operatorStack.pop()!);
         }
-        console.log("pushing operator", token);
         operatorStack.push(token);
       }
     }
@@ -96,7 +97,6 @@ export class FormulaEvaluator {
       outputQueue.push(operatorStack.pop()!);
     }
 
-    console.log("outputQueue", outputQueue);
     //check if the formula is one number only
     if (outputQueue.length === 1 && this.isNumber(outputQueue[0])) {
       this._result = Number(outputQueue[0]);
@@ -106,7 +106,6 @@ export class FormulaEvaluator {
     // evaluate the postfix expression
     const valueStack: number[] = [];
     for (const token of outputQueue) {
-      console.log("valueStack: ", valueStack);
       let endEvaluate = false;
       if (this.isNumber(token)) {
         valueStack.push(Number(token));
@@ -150,6 +149,9 @@ export class FormulaEvaluator {
       }
     }
 
+    if (this._errorMessage === "") {
+      this._result = valueStack[0];
+    }
   }
 
   public get error(): string {
