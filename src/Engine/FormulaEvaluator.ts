@@ -44,6 +44,14 @@ export class FormulaEvaluator {
    */
 
   evaluate(formula: FormulaType) {
+    // check for empty formula
+    if (formula.length === 0) {
+      this._errorMessage = ErrorMessages.emptyFormula;
+      return;
+    } else {
+      this._errorMessage = "";
+    }
+
     // check cell references in the formula and convert them to values and put them in a new array
     const formulaInValue = [...formula];
 
@@ -68,7 +76,6 @@ export class FormulaEvaluator {
 
     for (const token of formulaInValue) {
       if (this.isNumber(token)) {
-        console.log("pushing number", token);
         outputQueue.push(token);
       } else if (token === '(') {
         operatorStack.push(token);
