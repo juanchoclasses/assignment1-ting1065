@@ -13,3 +13,5 @@
 - Are the function names self-explanatory?
     <br>Yes, the function names are self-explanatory.
 
+<br>
+The variable names in Hanlun's code are well-chosen and provide clear indications of their intended use. The code itself is functional, effectively evaluating formulas, managing different error scenarios, passing all the tests and making the client side work as expected. The comments throughout the code are easy to follow and help in understanding the logic behind each section. Function names are appropriately chosen, making it intuitive to grasp his purpose within the context of the code. In summary, I think the code adheres to good coding practices, making it readable and maintainable.
