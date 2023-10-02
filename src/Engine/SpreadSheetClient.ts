@@ -313,6 +313,7 @@ class SpreadSheetClient {
     // put the user name in the body
     const userName = user;
     const fetchURL = `${this._baseURL}/documents/${name}`;
+
     fetch(fetchURL, {
       method: "PUT",
       headers: {
